@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Solstice Check-In Kiosk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #12101a;
+    --panel: #1c1826;
+    --panel-raised: #241f31;
+    --line: #332c42;
+    --text: #efe9f7;
+    --text-dim: #9a8fb3;
+    --violet: #a67cf0;
+    --green: #3ddc97;
+    --green-dim: #1f4d3a;
+    --amber: #f5a623;
+    --amber-dim: #6b5326;
+    --red: #ef5b5b;
+    --red-dim: #4a2323;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; padding: 32px 20px 60px; }
+  .wrap { max-width: 920px; margin: 0 auto; }
+
+  header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 12px; }
+  .brand-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--violet); text-transform: uppercase; margin-bottom: 6px; }
+  h1 { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 28px; }
+  .subhead { font-size: 13.5px; color: var(--text-dim); max-width: 560px; margin-top: 8px; line-height: 1.5; }
+
+  .reset-btn {
+    background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+    border-radius: 6px; padding: 9px 16px; font-size: 12.5px; font-family: 'IBM Plex Mono', monospace;
+    cursor: pointer; white-space: nowrap;
+  }
+  .reset-btn:hover { border-color: var(--red); color: var(--red); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 24px 0; }
+
+  .attendee-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .attendee-name { font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 600; }
+  .attendee-role { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--violet); text-transform: uppercase; letter-spacing: 0.06em; }
+  .attendee-id { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-dim); }
+
+  .status-badge {
+    align-self: flex-start; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
+    padding: 5px 12px; border-radius: 20px;
+  }
+  .status-badge.not_arrived { background: var(--panel-raised); color: var(--text-dim); }
+  .status-badge.pending { background: var(--amber-dim); color: var(--amber); }
+  .status-badge.checked_in { background: var(--green-dim); color: var(--green); }
+  .status-badge.print_failed { background: var(--red-dim); color: var(--red); }
+  .status-badge.already_checked_in { background: var(--amber-dim); color: var(--amber); }
+
+  .status-note { font-size: 12.5px; color: var(--text-dim); min-height: 16px; }
+
+  .card-actions { display: flex; gap: 8px; margin-top: 4px; }
+  .card-actions button {
+    flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+    border-radius: 6px; padding: 9px 0; cursor: pointer; border: none;
+  }
+  .btn-scan { background: var(--violet); color: #1a1024; }
+  .btn-scan:hover { filter: brightness(1.08); }
+  .btn-scan:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-fail { background: transparent; border: 1px solid var(--line) !important; color: var(--text-dim); }
+  .btn-fail:hover { border-color: var(--red) !important; color: var(--red); }
+  .btn-fail:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 22px; margin-bottom: 20px; }
+  .card-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 14px; }
+
+  .manual-row { display: flex; gap: 10px; }
+  .manual-row input { flex: 1; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 11px 14px; color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 14px; }
+  .manual-row input:focus { outline: 2px solid var(--violet); outline-offset: -1px; }
+  .manual-row button { background: var(--violet); color: #1a1024; border: none; border-radius: 6px; padding: 0 20px; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .manual-row button:hover { filter: brightness(1.08); }
+  .manual-hint { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-dim); margin-top: 10px; }
+
+  .log-list { display: flex; flex-direction: column; max-height: 260px; overflow-y: auto; }
+  .log-entry { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: var(--text-dim); flex-shrink: 0; width: 68px; }
+  .log-tag { flex-shrink: 0; width: 90px; font-weight: 600; }
+  .log-tag.publish { color: var(--amber); }
+  .log-tag.confirm { color: var(--green); }
+  .log-tag.fail { color: var(--red); }
+  .log-tag.block { color: var(--violet); }
+  .log-tag.reset { color: var(--text-dim); }
+  .log-msg { color: var(--text); }
+  .log-empty { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--text-dim); padding: 8px 0; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="brand-label">Solstice Events Co.</div>
+      <h1>Check-In Kiosk</h1>
+      <p class="subhead">Badge printing runs on the vendor's message queue. A scan publishes a print job, the attendee sits in a pending state, and "Checked In" only appears once the printer's webhook confirms the job.</p>
+    </div>
+    <button class="reset-btn" onclick="resetDemo()">Reset demo</button>
+  </header>
+
+  <div class="grid" id="attendeeGrid"></div>
+
+  <div class="card">
+    <div class="card-label">Manual QR Entry</div>
+    <div class="manual-row">
+      <input type="text" id="manualInput" placeholder="SOL-2026-0001" />
+      <button onclick="manualScan()">Submit</button>
+    </div>
+    <div class="manual-hint">Scanning an already checked-in code is a no-op: nothing is published to the queue.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Queue &amp; webhook activity</div>
+    <div class="log-list" id="logList">
+      <div class="log-empty" id="logEmpty">No activity yet.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API_BASE = "http://127.0.0.1:8001";
+  let attendees = {};       // id -> {name, role}
+  let statuses = {};        // id -> "not_arrived" | "pending" | "checked_in" | "print_failed" | "already_checked_in"
+  let pollTimers = {};      // id -> interval handle
+
+  function logEvent(tagClass, tagText, msg) {
+    const emptyMsg = document.getElementById("logEmpty");
+    if (emptyMsg) emptyMsg.remove();
+    const list = document.getElementById("logList");
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const row = document.createElement("div");
+    row.className = "log-entry";
+    row.innerHTML = `
+      <div class="log-time">${time}</div>
+      <div class="log-tag ${tagClass}">${tagText}</div>
+      <div class="log-msg">${msg}</div>
+    `;
+    list.prepend(row);
+  }
+
+  function statusLabel(status) {
+    switch (status) {
+      case "checked_in": return "Checked in";
+      case "already_checked_in": return "Checked in";
+      case "pending": return "Pending…";
+      case "print_failed": return "Print failed";
+      default: return "Not arrived";
+    }
+  }
+
+  function statusNote(status) {
+    switch (status) {
+      case "checked_in":
+      case "already_checked_in":
+        return "Badge printed and confirmed.";
+      case "pending":
+        return "Job queued — waiting for printer webhook…";
+      case "print_failed":
+        return "Printer reported failure — safe to retry.";
+      default:
+        return "Waiting for a scan.";
+    }
+  }
+
+  function renderAttendees() {
+    const grid = document.getElementById("attendeeGrid");
+    grid.innerHTML = "";
+    for (const id in attendees) {
+      const a = attendees[id];
+      const status = statuses[id] || "not_arrived";
+      const busy = status === "pending";
+      const card = document.createElement("div");
+      card.className = "attendee-card";
+      card.innerHTML = `
+        <div class="attendee-name">${a.name}</div>
+        <div class="attendee-role">${a.role}</div>
+        <div class="status-badge ${status}">${statusLabel(status)}</div>
+        <div class="attendee-id">${id}</div>
+        <div class="status-note">${statusNote(status)}</div>
+        <div class="card-actions">
+          <button class="btn-scan" ${busy ? "disabled" : ""} onclick="scan('${id}', false)">Scan QR</button>
+          <button class="btn-fail" ${busy ? "disabled" : ""} onclick="scan('${id}', true)">Fail print</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    }
+  }
+
+  async function loadAttendees() {
+    try {
+      let response = await fetch(`${API_BASE}/attendees`);
+      attendees = await response.json();
+      for (const id in attendees) {
+        if (!(id in statuses)) statuses[id] = "not_arrived";
+      }
+      renderAttendees();
+    } catch (err) {
+      logEvent("fail", "ERROR", `Could not reach ${API_BASE}. Is server.py running?`);
+    }
+  }
+
+  async function scan(id, forceFail) {
+    const attendee = attendees[id];
+    if (!attendee) return;
+
+    if (statuses[id] === "checked_in" || statuses[id] === "already_checked_in") {
+      logEvent("block", "NO-OP", `${attendee.name} already checked in — nothing published to the queue.`);
+      return;
+    }
+
+    try {
+      const url = `${API_BASE}/checkin/${id}` + (forceFail ? "?force_fail=1" : "");
+      let response = await fetch(url);
+      let data = await response.json();
+
+      if (data.error) {
+        logEvent("fail", "ERROR", `${id} not found.`);
+        return;
+      }
+
+      if (data.status === "already_checked_in") {
+        statuses[id] = "already_checked_in";
+        renderAttendees();
+        logEvent("block", "NO-OP", `${data.attendee} already checked in — nothing published to the queue.`);
+        return;
+      }
+
+      statuses[id] = "pending";
+      renderAttendees();
+      logEvent("publish", "PUBLISHED", `${data.attendee} — print job published to queue.`);
+      pollForResult(id, data.attendee);
+
+    } catch (err) {
+      logEvent("fail", "ERROR", `Scan failed — is server.py running at ${API_BASE}?`);
+    }
+  }
+
+  function pollForResult(id, name) {
+    if (pollTimers[id]) clearInterval(pollTimers[id]);
+    pollTimers[id] = setInterval(async () => {
+      try {
+        let response = await fetch(`${API_BASE}/status/${id}`);
+        let data = await response.json();
+
+        if (data.status === "checked_in") {
+          clearInterval(pollTimers[id]);
+          statuses[id] = "checked_in";
+          renderAttendees();
+          logEvent("confirm", "CONFIRMED", `${name} — webhook confirmed print success.`);
+        } else if (data.status === "print_failed") {
+          clearInterval(pollTimers[id]);
+          statuses[id] = "print_failed";
+          renderAttendees();
+          logEvent("fail", "FAILED", `${name} — webhook confirmed print failure. Retry available.`);
+        }
+      } catch (err) {
+        clearInterval(pollTimers[id]);
+        logEvent("fail", "ERROR", "Lost connection while waiting for webhook.");
+      }
+    }, 500);
+  }
+
+  function manualScan() {
+    const id = document.getElementById("manualInput").value.trim().toUpperCase();
+    if (!id) return;
+    if (!attendees[id]) {
+      logEvent("fail", "ERROR", `${id} is not a registered attendee.`);
+      return;
+    }
+    scan(id, false);
+    document.getElementById("manualInput").value = "";
+  }
+
+  async function resetDemo() {
+    try {
+      await fetch(`${API_BASE}/reset`, { method: "POST" });
+      for (const id in statuses) statuses[id] = "not_arrived";
+      Object.values(pollTimers).forEach(clearInterval);
+      pollTimers = {};
+      renderAttendees();
+      logEvent("reset", "RESET", "Demo state cleared — all attendees set to not arrived.");
+    } catch (err) {
+      logEvent("fail", "ERROR", "Reset failed — is server.py running?");
+    }
+  }
+
+  loadAttendees();
+</script>
+
+</body>
+</html>
