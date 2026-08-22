@@ -78,5 +78,8 @@ def worker():
         })
 
 if __name__ == "__main__":
-    threading.Thread(target=worker, daemon=True).start()
+    # Multiple workers so jobs can genuinely resolve out of order,
+    # rather than always finishing in the exact sequence they were queued.
+    for _ in range(3):
+        threading.Thread(target=worker, daemon=True).start()
     app.run(port=8001)
